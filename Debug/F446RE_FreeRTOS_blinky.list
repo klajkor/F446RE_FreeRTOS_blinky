@@ -857,15 +857,15 @@ void StartReadButton03(void *argument)
  80007ea:	4603      	mov	r3, r0
  80007ec:	2b00      	cmp	r3, #0
  80007ee:	d003      	beq.n	80007f8 <StartReadButton03+0x20>
-      Delay_Multiplier = 1;
+      Delay_Multiplier = 3; // Button released
  80007f0:	4b06      	ldr	r3, [pc, #24]	; (800080c <StartReadButton03+0x34>)
- 80007f2:	2201      	movs	r2, #1
+ 80007f2:	2203      	movs	r2, #3
  80007f4:	601a      	str	r2, [r3, #0]
  80007f6:	e002      	b.n	80007fe <StartReadButton03+0x26>
     else
-      Delay_Multiplier = 2;
+      Delay_Multiplier = 1; // Button pushed
  80007f8:	4b04      	ldr	r3, [pc, #16]	; (800080c <StartReadButton03+0x34>)
- 80007fa:	2202      	movs	r2, #2
+ 80007fa:	2201      	movs	r2, #1
  80007fc:	601a      	str	r2, [r3, #0]
     osDelay(10);
  80007fe:	200a      	movs	r0, #10
