@@ -43,42 +43,12 @@
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart2;
 
-/* Definitions for blink01 */
-osThreadId_t blink01Handle;
-const osThreadAttr_t blink01_attributes = {
-  .name = "blink01",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
-};
-/* Definitions for blink02 */
-osThreadId_t blink02Handle;
-const osThreadAttr_t blink02_attributes = {
-  .name = "blink02",
-  .priority = (osPriority_t) osPriorityBelowNormal,
-  .stack_size = 128 * 4
-};
-/* Definitions for readButton03 */
-osThreadId_t readButton03Handle;
-const osThreadAttr_t readButton03_attributes = {
-  .name = "readButton03",
-  .priority = (osPriority_t) osPriorityAboveNormal,
-  .stack_size = 128 * 4
-};
-/* Definitions for periodicTimer */
-osTimerId_t periodicTimerHandle;
-const osTimerAttr_t periodicTimer_attributes = {
-  .name = "periodicTimer"
-};
-/* Definitions for onceTimer */
-osTimerId_t onceTimerHandle;
-const osTimerAttr_t onceTimer_attributes = {
-  .name = "onceTimer"
-};
-/* Definitions for myBinarySem01 */
-osSemaphoreId_t myBinarySem01Handle;
-const osSemaphoreAttr_t myBinarySem01_attributes = {
-  .name = "myBinarySem01"
-};
+osThreadId blink01Handle;
+osThreadId blink02Handle;
+osThreadId readButton03Handle;
+osTimerId periodicTimerHandle;
+osTimerId onceTimerHandle;
+osSemaphoreId myBinarySem01Handle;
 /* USER CODE BEGIN PV */
 
 static uint32_t Led_Delay = 250;
@@ -90,11 +60,11 @@ static uint32_t Delay_Multiplier = 4;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
-void StartBlink01(void *argument);
-void StartBlink02(void *argument);
-void StartReadButton03(void *argument);
-void PTCallback(void *argument);
-void OTCallback(void *argument);
+void StartBlink01(void const * argument);
+void StartBlink02(void const * argument);
+void StartReadButton03(void const * argument);
+void PTCallback(void const * argument);
+void OTCallback(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -140,29 +110,32 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  /* USER CODE END 2 */
+  char *str3 = "Init Done\r\n";
+  printf(str3);
 
-  /* Init scheduler */
-  osKernelInitialize();
+  /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
   /* Create the semaphores(s) */
-  /* creation of myBinarySem01 */
-  myBinarySem01Handle = osSemaphoreNew(1, 1, &myBinarySem01_attributes);
+  /* definition and creation of myBinarySem01 */
+  osSemaphoreDef(myBinarySem01);
+  myBinarySem01Handle = osSemaphoreCreate(osSemaphore(myBinarySem01), 1);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
-  /* creation of periodicTimer */
-  periodicTimerHandle = osTimerNew(PTCallback, osTimerPeriodic, NULL, &periodicTimer_attributes);
+  /* definition and creation of periodicTimer */
+  osTimerDef(periodicTimer, PTCallback);
+  periodicTimerHandle = osTimerCreate(osTimer(periodicTimer), osTimerPeriodic, NULL);
 
-  /* creation of onceTimer */
-  onceTimerHandle = osTimerNew(OTCallback, osTimerOnce, NULL, &onceTimer_attributes);
+  /* definition and creation of onceTimer */
+  osTimerDef(onceTimer, OTCallback);
+  onceTimerHandle = osTimerCreate(osTimer(onceTimer), osTimerOnce, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -173,24 +146,21 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of blink01 */
-  blink01Handle = osThreadNew(StartBlink01, NULL, &blink01_attributes);
+  /* definition and creation of blink01 */
+  osThreadDef(blink01, StartBlink01, osPriorityNormal, 0, 128);
+  blink01Handle = osThreadCreate(osThread(blink01), NULL);
 
-  /* creation of blink02 */
-  blink02Handle = osThreadNew(StartBlink02, NULL, &blink02_attributes);
+  /* definition and creation of blink02 */
+  osThreadDef(blink02, StartBlink02, osPriorityNormal, 0, 128);
+  blink02Handle = osThreadCreate(osThread(blink02), NULL);
 
-  /* creation of readButton03 */
-  readButton03Handle = osThreadNew(StartReadButton03, NULL, &readButton03_attributes);
+  /* definition and creation of readButton03 */
+  osThreadDef(readButton03, StartReadButton03, osPriorityAboveNormal, 0, 128);
+  readButton03Handle = osThreadCreate(osThread(readButton03), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
-
-  /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
-  char *str1 = "osKernelStart()\r\n";
-  printf(str1);
-  /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
   osKernelStart();
@@ -335,9 +305,9 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartBlink01 */
-void StartBlink01(void *argument)
+void StartBlink01(void const * argument)
 {
-	/* USER CODE BEGIN 5 */
+  /* USER CODE BEGIN 5 */
 	/* Infinite loop */
 	//osTimerStart(periodicTimerHandle, 5000U);
 	for(;;)
@@ -347,7 +317,7 @@ void StartBlink01(void *argument)
 	}
 	// In case we accidentally exit from task loop
 	osThreadTerminate(NULL);
-	/* USER CODE END 5 */
+  /* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_StartBlink02 */
@@ -357,7 +327,7 @@ void StartBlink01(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartBlink02 */
-void StartBlink02(void *argument)
+void StartBlink02(void const * argument)
 {
   /* USER CODE BEGIN StartBlink02 */
   /* Infinite loop */
@@ -365,10 +335,10 @@ void StartBlink02(void *argument)
   {
 	  if (Delay_Multiplier == -1)
 	  {
-		  osSemaphoreAcquire(myBinarySem01Handle, osWaitForever);
+		  osSemaphoreWait(myBinarySem01Handle, osWaitForever);
 		  osDelay(5000);
 		  Delay_Multiplier = 4;
-		  char *str2 = ">>> Multiplier set to 4\r\n";
+		  char *str2 = ">02> Multiplier set to 4\r\n";
 		  printf(str2);
 		  osSemaphoreRelease(myBinarySem01Handle);
 	  }
@@ -389,7 +359,7 @@ void StartBlink02(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartReadButton03 */
-void StartReadButton03(void *argument)
+void StartReadButton03(void const * argument)
 {
   /* USER CODE BEGIN StartReadButton03 */
 	/* Infinite loop */
@@ -404,10 +374,10 @@ void StartReadButton03(void *argument)
 		else
 		{
 			// Button pushed
-			if (osSemaphoreAcquire(myBinarySem01Handle, 10U) == osOK)
+			if (osSemaphoreWait(myBinarySem01Handle, 10U) == osOK)
 			{
 				osTimerStop(onceTimerHandle);
-				osTimerStart(onceTimerHandle, 2000U);
+				osTimerStart(onceTimerHandle, 5000U);
 				char *str3 = "One Shot Timer started\r\n";
 				printf(str3);
 				if (Delay_Multiplier != 1)
@@ -416,6 +386,7 @@ void StartReadButton03(void *argument)
 					char *str3 = "> Multiplier set to 1\r\n";
 					printf(str3);
 				}
+				osSemaphoreRelease(myBinarySem01Handle);
 			}
 
 		}
@@ -425,7 +396,7 @@ void StartReadButton03(void *argument)
 }
 
 /* PTCallback function */
-void PTCallback(void *argument)
+void PTCallback(void const * argument)
 {
   /* USER CODE BEGIN PTCallback */
 	//HAL_UART_Transmit(&huart2, "Sending from PERIODIC TIMER\r\n", 29, 10);
@@ -433,13 +404,13 @@ void PTCallback(void *argument)
 }
 
 /* OTCallback function */
-void OTCallback(void *argument)
+void OTCallback(void const * argument)
 {
-	/* USER CODE BEGIN OTCallback */
+  /* USER CODE BEGIN OTCallback */
 	Delay_Multiplier = 4;
 	char *str3 = ">>>> Multiplier set to 4\r\n";
 	printf(str3);
-	/* USER CODE END OTCallback */
+  /* USER CODE END OTCallback */
 }
 
  /**
