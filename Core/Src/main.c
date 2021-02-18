@@ -23,7 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,10 +64,25 @@ const osThreadAttr_t readButton03_attributes = {
   .priority = (osPriority_t) osPriorityAboveNormal,
   .stack_size = 128 * 4
 };
+/* Definitions for periodicTimer */
+osTimerId_t periodicTimerHandle;
+const osTimerAttr_t periodicTimer_attributes = {
+  .name = "periodicTimer"
+};
+/* Definitions for onceTimer */
+osTimerId_t onceTimerHandle;
+const osTimerAttr_t onceTimer_attributes = {
+  .name = "onceTimer"
+};
+/* Definitions for myBinarySem01 */
+osSemaphoreId_t myBinarySem01Handle;
+const osSemaphoreAttr_t myBinarySem01_attributes = {
+  .name = "myBinarySem01"
+};
 /* USER CODE BEGIN PV */
 
-uint32_t Led_Delay = 250;
-uint32_t Delay_Multiplier = 2;
+static uint32_t Led_Delay = 250;
+static uint32_t Delay_Multiplier = 4;
 
 /* USER CODE END PV */
 
@@ -78,6 +93,8 @@ static void MX_USART2_UART_Init(void);
 void StartBlink01(void *argument);
 void StartBlink02(void *argument);
 void StartReadButton03(void *argument);
+void PTCallback(void *argument);
+void OTCallback(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -85,7 +102,11 @@ void StartReadButton03(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+int _write(int file, char *ptr, int len)
+{
+	HAL_UART_Transmit(&huart2,(uint8_t *)ptr,len,10);
+	return len;
+}
 /* USER CODE END 0 */
 
 /**
@@ -128,9 +149,20 @@ int main(void)
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* creation of myBinarySem01 */
+  myBinarySem01Handle = osSemaphoreNew(1, 1, &myBinarySem01_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
+
+  /* Create the timer(s) */
+  /* creation of periodicTimer */
+  periodicTimerHandle = osTimerNew(PTCallback, osTimerPeriodic, NULL, &periodicTimer_attributes);
+
+  /* creation of onceTimer */
+  onceTimerHandle = osTimerNew(OTCallback, osTimerOnce, NULL, &onceTimer_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -156,6 +188,8 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
+  char *str1 = "osKernelStart()\r\n";
+  printf(str1);
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -185,21 +219,26 @@ void SystemClock_Config(void)
   /** Configure the main internal regulator output voltage
   */
   __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 16;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 180;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Activate the Over-Drive mode
+  */
+  if (HAL_PWREx_EnableOverDrive() != HAL_OK)
   {
     Error_Handler();
   }
@@ -209,10 +248,10 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
     Error_Handler();
   }
@@ -286,6 +325,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartBlink01 */
@@ -297,16 +337,17 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartBlink01 */
 void StartBlink01(void *argument)
 {
-  /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    HAL_GPIO_TogglePin(GPIOA, LD2_Pin);
-    osDelay(Led_Delay * Delay_Multiplier);
-  }
-  // In case we accidentally exit from task loop
-  osThreadTerminate(NULL);
-  /* USER CODE END 5 */
+	/* USER CODE BEGIN 5 */
+	/* Infinite loop */
+	//osTimerStart(periodicTimerHandle, 5000U);
+	for(;;)
+	{
+		HAL_GPIO_TogglePin(GPIOA, LD2_Pin);
+		osDelay(Led_Delay * Delay_Multiplier);
+	}
+	// In case we accidentally exit from task loop
+	osThreadTerminate(NULL);
+	/* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_StartBlink02 */
@@ -322,8 +363,19 @@ void StartBlink02(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  //HAL_GPIO_TogglePin(GPIOA, LD2_Pin);
-	  osDelay(700);
+	  if (Delay_Multiplier == -1)
+	  {
+		  osSemaphoreAcquire(myBinarySem01Handle, osWaitForever);
+		  osDelay(5000);
+		  Delay_Multiplier = 4;
+		  char *str2 = ">>> Multiplier set to 4\r\n";
+		  printf(str2);
+		  osSemaphoreRelease(myBinarySem01Handle);
+	  }
+	  else
+	  {
+		  osDelay(0);
+	  }
   }
   // In case we accidentally exit from task loop
   osThreadTerminate(NULL);
@@ -340,16 +392,54 @@ void StartBlink02(void *argument)
 void StartReadButton03(void *argument)
 {
   /* USER CODE BEGIN StartReadButton03 */
-  /* Infinite loop */
-  for(;;)
-  {
-    if(HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin))
-      Delay_Multiplier = 3; // Button released
-    else
-      Delay_Multiplier = 1; // Button pushed
-    osDelay(10);
-  }
+	/* Infinite loop */
+	osSemaphoreRelease(myBinarySem01Handle);
+	for(;;)
+	{
+		if(HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin))
+		{
+			osSemaphoreRelease(myBinarySem01Handle);
+			osDelay(0);
+		}
+		else
+		{
+			// Button pushed
+			if (osSemaphoreAcquire(myBinarySem01Handle, 10U) == osOK)
+			{
+				osTimerStop(onceTimerHandle);
+				osTimerStart(onceTimerHandle, 2000U);
+				char *str3 = "One Shot Timer started\r\n";
+				printf(str3);
+				if (Delay_Multiplier != 1)
+				{
+					Delay_Multiplier = 1;
+					char *str3 = "> Multiplier set to 1\r\n";
+					printf(str3);
+				}
+			}
+
+		}
+		osDelay(10);
+	}
   /* USER CODE END StartReadButton03 */
+}
+
+/* PTCallback function */
+void PTCallback(void *argument)
+{
+  /* USER CODE BEGIN PTCallback */
+	//HAL_UART_Transmit(&huart2, "Sending from PERIODIC TIMER\r\n", 29, 10);
+  /* USER CODE END PTCallback */
+}
+
+/* OTCallback function */
+void OTCallback(void *argument)
+{
+	/* USER CODE BEGIN OTCallback */
+	Delay_Multiplier = 4;
+	char *str3 = ">>>> Multiplier set to 4\r\n";
+	printf(str3);
+	/* USER CODE END OTCallback */
 }
 
  /**

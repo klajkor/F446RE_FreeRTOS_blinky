@@ -58,8 +58,8 @@ all: main-build
 main-build: F446RE_FreeRTOS_blinky.elf secondary-outputs
 
 # Tool invocations
-F446RE_FreeRTOS_blinky.elf: $(OBJS) $(USER_OBJS) C:\Users\Robi\Documents\Prog\STM32\STM32CubeIDE\workspace\F446RE_FreeRTOS_blinky\STM32F446RETX_FLASH.ld
-	arm-none-eabi-gcc -o "F446RE_FreeRTOS_blinky.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Robi\Documents\Prog\STM32\STM32CubeIDE\workspace\F446RE_FreeRTOS_blinky\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="F446RE_FreeRTOS_blinky.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+F446RE_FreeRTOS_blinky.elf: $(OBJS) $(USER_OBJS) C:\Users\Robert_Klajko\OneDrive\ -\ EPAM\Prog\STM32\STM32CubeIDE\workspace\F446RE_FreeRTOS_blinky\STM32F446RETX_FLASH.ld
+	arm-none-eabi-gcc -o "F446RE_FreeRTOS_blinky.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Robert_Klajko\OneDrive - EPAM\Prog\STM32\STM32CubeIDE\workspace\F446RE_FreeRTOS_blinky\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="F446RE_FreeRTOS_blinky.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
