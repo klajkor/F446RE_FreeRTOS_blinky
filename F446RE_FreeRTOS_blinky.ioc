@@ -1,8 +1,8 @@
 #MicroXplorer Configuration settings - do not modify
-FREERTOS.BinarySemaphores01=myBinarySem01,Dynamic,NULL
 FREERTOS.FootprintOK=true
-FREERTOS.IPParameters=Tasks01,BinarySemaphores01,Timers01,configUSE_TIMERS,configTIMER_TASK_PRIORITY,FootprintOK
-FREERTOS.Tasks01=blink01,0,128,StartBlink01,Default,NULL,Dynamic,NULL,NULL;blink02,0,128,StartBlink02,Default,NULL,Dynamic,NULL,NULL;readButton03,1,128,StartReadButton03,Default,NULL,Dynamic,NULL,NULL
+FREERTOS.IPParameters=Tasks01,Timers01,configUSE_TIMERS,configTIMER_TASK_PRIORITY,FootprintOK,Mutexes01
+FREERTOS.Mutexes01=myMutex01,Dynamic,NULL
+FREERTOS.Tasks01=blink01,0,1024,StartBlink01,Default,NULL,Dynamic,NULL,NULL;blink02,0,1024,StartBlink02,Default,NULL,Dynamic,NULL,NULL;readButton03,-1,1024,StartReadButton03,Default,NULL,Dynamic,NULL,NULL
 FREERTOS.Timers01=periodicTimer,PTCallback,osTimerPeriodic,Default,NULL,Dynamic,NULL;onceTimer,OTCallback,osTimerOnce,Default,NULL,Dynamic,NULL
 FREERTOS.configTIMER_TASK_PRIORITY=6
 FREERTOS.configUSE_TIMERS=1

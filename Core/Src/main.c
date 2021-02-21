@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,7 +49,7 @@ osThreadId blink02Handle;
 osThreadId readButton03Handle;
 osTimerId periodicTimerHandle;
 osTimerId onceTimerHandle;
-osSemaphoreId myBinarySem01Handle;
+osMutexId myMutex01Handle;
 /* USER CODE BEGIN PV */
 
 static uint32_t Led_Delay = 250;
@@ -110,19 +111,19 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  char *str3 = "Init Done\r\n";
-  printf(str3);
+  char *str0 = "\r\n\r\nInit Done\r\n";
+  printf(str0);
 
   /* USER CODE END 2 */
+
+  /* Create the mutex(es) */
+  /* definition and creation of myMutex01 */
+  osMutexDef(myMutex01);
+  myMutex01Handle = osMutexCreate(osMutex(myMutex01));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
-
-  /* Create the semaphores(s) */
-  /* definition and creation of myBinarySem01 */
-  osSemaphoreDef(myBinarySem01);
-  myBinarySem01Handle = osSemaphoreCreate(osSemaphore(myBinarySem01), 1);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -147,15 +148,15 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of blink01 */
-  osThreadDef(blink01, StartBlink01, osPriorityNormal, 0, 128);
+  osThreadDef(blink01, StartBlink01, osPriorityNormal, 0, 1024);
   blink01Handle = osThreadCreate(osThread(blink01), NULL);
 
   /* definition and creation of blink02 */
-  osThreadDef(blink02, StartBlink02, osPriorityNormal, 0, 128);
+  osThreadDef(blink02, StartBlink02, osPriorityNormal, 0, 1024);
   blink02Handle = osThreadCreate(osThread(blink02), NULL);
 
   /* definition and creation of readButton03 */
-  osThreadDef(readButton03, StartReadButton03, osPriorityAboveNormal, 0, 128);
+  osThreadDef(readButton03, StartReadButton03, osPriorityBelowNormal, 0, 1024);
   readButton03Handle = osThreadCreate(osThread(readButton03), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -330,23 +331,40 @@ void StartBlink01(void const * argument)
 void StartBlink02(void const * argument)
 {
   /* USER CODE BEGIN StartBlink02 */
-  /* Infinite loop */
-  for(;;)
-  {
-	  if (Delay_Multiplier == -1)
-	  {
-		  osSemaphoreWait(myBinarySem01Handle, osWaitForever);
-		  osDelay(5000);
-		  Delay_Multiplier = 4;
-		  char *str2 = ">02> Multiplier set to 4\r\n";
-		  printf(str2);
-		  osSemaphoreRelease(myBinarySem01Handle);
-	  }
-	  else
-	  {
-		  osDelay(0);
-	  }
-  }
+	//void *char1, *char2, *char3, *char4;
+	/* Infinite loop */
+	for(;;)
+	{
+		if (1)
+		{
+			if (osMutexWait(myMutex01Handle, 10U) == osOK)
+			{
+				char *str1 = "Bl02> Mutex taken\r\n";
+				printf(str1);
+				if (Delay_Multiplier != 4)
+				{
+					Delay_Multiplier = 4;
+					char *str2 = "Bl02> Multiplier set to 4\r\n";
+					printf(str2);
+				}
+				osDelay(5000);
+				osMutexRelease(myMutex01Handle);
+				char *str3 = "Bl02> Mutex released\r\n";
+				printf(str3);
+			}
+			else
+			{
+				char *str4 = "Bl02> !! Mutex NOT taken\r\n";
+				printf(str4);
+				osDelay(5000);
+			}
+			osDelay(5000);
+		}
+		else
+		{
+			osDelay(0);
+		}
+	}
   // In case we accidentally exit from task loop
   osThreadTerminate(NULL);
   /* USER CODE END StartBlink02 */
@@ -363,34 +381,43 @@ void StartReadButton03(void const * argument)
 {
   /* USER CODE BEGIN StartReadButton03 */
 	/* Infinite loop */
-	osSemaphoreRelease(myBinarySem01Handle);
+	osTimerStop(onceTimerHandle);
 	for(;;)
 	{
 		if(HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin))
 		{
-			osSemaphoreRelease(myBinarySem01Handle);
 			osDelay(0);
 		}
 		else
 		{
 			// Button pushed
-			if (osSemaphoreWait(myBinarySem01Handle, 10U) == osOK)
+			if (Delay_Multiplier != 1)
 			{
-				osTimerStop(onceTimerHandle);
-				osTimerStart(onceTimerHandle, 5000U);
-				char *str3 = "One Shot Timer started\r\n";
-				printf(str3);
-				if (Delay_Multiplier != 1)
+				if (osMutexWait(myMutex01Handle, 10U) == osOK)
 				{
+					char *str03_1 = ">Bt03>>> Mutex taken\r\n";
+					printf(str03_1);
+					osTimerStop(onceTimerHandle);
+					//osTimerStart(onceTimerHandle, 5000U);
+					//char *str03_2 = ">Bt03> One Shot Timer started\r\n";
+					//printf(str03_2);
 					Delay_Multiplier = 1;
-					char *str3 = "> Multiplier set to 1\r\n";
-					printf(str3);
+					char *str03_3 = ">Bt03>>> Multiplier set to 1\r\n";
+					printf(str03_3);
+					osMutexRelease(myMutex01Handle);
+					char *str03_4 = ">Bt03>>> Mutex released\r\n";
+					printf(str03_4);
 				}
-				osSemaphoreRelease(myBinarySem01Handle);
+				else
+				{
+					char *str03_5 = ">Bt03>>> !! Mutex NOT taken\r\n";
+					printf(str03_5);
+				}
 			}
+			osDelay(10);
 
 		}
-		osDelay(10);
+		osDelay(1);
 	}
   /* USER CODE END StartReadButton03 */
 }
